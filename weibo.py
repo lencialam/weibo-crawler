@@ -418,10 +418,10 @@ class Weibo(object):
             weibo_info = info['mblog']
             weibo_id = weibo_info['id']
             retweeted_status = weibo_info.get('retweeted_status')
-            is_long = weibo_info['isLongText']
+            is_long = weibo_info.get('isLongText') and weibo_info['isLongText']
             if retweeted_status:  # 转发
                 retweet_id = retweeted_status['id']
-                is_long_retweet = retweeted_status['isLongText']
+                is_long_retweet = retweeted_status.get('isLongText') and retweeted_status['isLongText']
                 if is_long:
                     weibo = self.get_long_weibo(weibo_id)
                     if not weibo:
@@ -524,6 +524,7 @@ class Weibo(object):
         try:
             file_dir = os.path.split(
                 os.path.realpath(__file__)
+                #os.path.abspath('')
             )[0] + os.sep + 'weibo' + os.sep + self.user['screen_name']
             if type == 'img' or type == 'video':
                 file_dir = file_dir + os.sep + type
@@ -713,11 +714,32 @@ class Weibo(object):
     def get_pages(self):
         """获取全部微博"""
         self.get_user_info()
+        if self.user.get('statuses_count') and self.user['statuses_count'] > 100:
+            page_count = self.get_page_count()
+            wrote_count = 0
+            self.print_user_info()
+            page1 = 0
+            random_pages = random.randint(1, 5)
             for page in tqdm(range(1, page_count + 1), desc=u"进度"):
                 print(u'第%d页' % page)
                 is_end = self.get_one_page(page)
                 if is_end:
+                    break
+
+                if page % 20 == 0:  # 每爬20页写入一次文件
+                    self.write_data(wrote_count)
                     wrote_count = self.got_count
+
+                # 通过加入随机等待避免被限制。爬虫速度过快容易被系统限制(一段时间后限
+                # 制会自动解除)，加入随机等待模拟人的操作，可降低被系统限制的风险。默
+                # 认是每爬取1到5页随机等待6到10秒，如果仍然被限，可适当增加sleep时间
+                if page - page1 == random_pages and page < page_count:
+                    sleep(random.randint(6, 10))
+                    page1 = page
+                    random_pages = random.randint(1, 5)
+
+            self.write_data(wrote_count)  # 将剩余不足20页的微博写入文件
+            print(u'微博爬取完成，共爬取%d条微博' % self.got_count)
 
     def get_user_list(self, file_name):
         """获取文件中的微博id信息"""
@@ -800,7 +822,7 @@ def main():
         比如文件可以叫user_id_list.txt，读取文件中的user_id_list如下所示:
         user_id_list = wb.get_user_list('user_id_list.txt')
         user_id_list = ['1669879400']"""
-        user_id_list = [str(i) for i in range(1751044680,3872726129)]
+        user_id_list = [str(i) for i in range(1751044680,2000000000,50)]
 
 
         wb.start(user_id_list)
