@@ -714,7 +714,7 @@ class Weibo(object):
     def get_pages(self):
         """获取全部微博"""
         self.get_user_info()
-        if self.user.get('statuses_count') and self.user['statuses_count'] > 100:
+        if self.user.get('statuses_count') and self.user['statuses_count'] > 100 and self.user['statuses_count'] < 10000:
             page_count = self.get_page_count()
             wrote_count = 0
             self.print_user_info()
