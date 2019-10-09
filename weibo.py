@@ -767,7 +767,7 @@ def main():
         请先安装MySQL数据库和pymysql，pymysql安装方法为命令行运行:pip install pymysql"""
         mysql_write = 0
         pic_download = 1  # 值为0代表不下载微博原始图片,1代表下载微博原始图片
-        video_download = 1  # 值为0代表不下载微博视频,1代表下载微博视频
+        video_download = 0  # 值为0代表不下载微博视频,1代表下载微博视频
 
         wb = Weibo(filter, since_date, mongodb_write, mysql_write,
                    pic_download, video_download)
@@ -798,8 +798,9 @@ def main():
         1669879400 迪丽热巴
         1729370543 郭碧婷
         比如文件可以叫user_id_list.txt，读取文件中的user_id_list如下所示:
-        user_id_list = wb.get_user_list('user_id_list.txt')"""
-        user_id_list = ['1669879400']
+        user_id_list = wb.get_user_list('user_id_list.txt')
+        user_id_list = ['1669879400']"""
+        user_id_list = wb.get_user_list('user_id_list.txt')
 
         wb.start(user_id_list)
     except Exception as e:
