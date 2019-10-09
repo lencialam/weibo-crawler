@@ -353,19 +353,39 @@ class Weibo(object):
 
     def print_user_info(self):
         """打印用户信息"""
-        print('+' * 100)
-        print(u'用户信息')
-        print(u'用户id：%s' % self.user['id'])
-        print(u'用户昵称：%s' % self.user['screen_name'])
-        gender = u'女' if self.user['gender'] == 'f' else u'男'
-        print(u'性别：%s' % gender)
-        print(u'微博数：%d' % self.user['statuses_count'])
-        print(u'粉丝数：%d' % self.user['followers_count'])
-        print(u'关注数：%d' % self.user['follow_count'])
+        string = '+' * 100 + '\n';
+        string += u'用户信息' + '\n';
+        string += u'用户id：%s' % self.user['id'] + '\n';
+        string += u'用户昵称：%s' % self.user['screen_name'] + '\n';
+        gender = u'女' if self.user['gender'] == 'f' else u'男';
+        string += u'性别：%s' % gender + '\n';
+        string += u'微博数：%d' % self.user['statuses_count'] + '\n';
+        string += u'粉丝数：%d' % self.user['followers_count'] + '\n';
+        string += u'关注数：%d' % self.user['follow_count'] + '\n';
         if self.user.get('verified_reason'):
-            print(self.user['verified_reason'])
-        print(self.user['description'])
-        print('+' * 100)
+            string += self.user['verified_reason'] + '\n';
+        string += u'个人简介：%s' % self.user['description'] + '\n';
+        string += '+' * 100;
+        with open(self.get_filepath('txt'),
+                      'w',
+                      encoding='utf-8-sig',
+                      newline='') as f:
+                f.write(string);
+        print(string);
+        # print('+' * 100)
+        # print(u'用户信息')
+        # print(u'用户id：%s' % self.user['id'])
+        # print(u'用户昵称：%s' % self.user['screen_name'])
+        # gender = u'女' if self.user['gender'] == 'f' else u'男'
+        # print(u'性别：%s' % gender)
+        # print(u'微博数：%d' % self.user['statuses_count'])
+        # print(u'粉丝数：%d' % self.user['followers_count'])
+        # print(u'关注数：%d' % self.user['follow_count'])
+        # if self.user.get('verified_reason'):
+        #     print(self.user['verified_reason'])
+        # print(self.user['description'])
+        # print('+' * 100)
+
 
     def print_one_weibo(self, weibo):
         """打印一条微博"""
@@ -693,31 +713,11 @@ class Weibo(object):
     def get_pages(self):
         """获取全部微博"""
         self.get_user_info()
-        page_count = self.get_page_count()
-        wrote_count = 0
-        self.print_user_info()
-        page1 = 0
-        random_pages = random.randint(1, 5)
-        for page in tqdm(range(1, page_count + 1), desc=u"进度"):
-            print(u'第%d页' % page)
-            is_end = self.get_one_page(page)
-            if is_end:
-                break
-
-            if page % 20 == 0:  # 每爬20页写入一次文件
-                self.write_data(wrote_count)
-                wrote_count = self.got_count
-
-            # 通过加入随机等待避免被限制。爬虫速度过快容易被系统限制(一段时间后限
-            # 制会自动解除)，加入随机等待模拟人的操作，可降低被系统限制的风险。默
-            # 认是每爬取1到5页随机等待6到10秒，如果仍然被限，可适当增加sleep时间
-            if page - page1 == random_pages and page < page_count:
-                sleep(random.randint(6, 10))
-                page1 = page
-                random_pages = random.randint(1, 5)
-
-        self.write_data(wrote_count)  # 将剩余不足20页的微博写入文件
-        print(u'微博爬取完成，共爬取%d条微博' % self.got_count)
+            for page in tqdm(range(1, page_count + 1), desc=u"进度"):
+                print(u'第%d页' % page)
+                is_end = self.get_one_page(page)
+                if is_end:
+                    wrote_count = self.got_count
 
     def get_user_list(self, file_name):
         """获取文件中的微博id信息"""
@@ -766,7 +766,7 @@ def main():
         """mysql_write值为0代表不将结果写入MySQL数据库,1代表写入;若要写入MySQL数据库，
         请先安装MySQL数据库和pymysql，pymysql安装方法为命令行运行:pip install pymysql"""
         mysql_write = 0
-        pic_download = 1  # 值为0代表不下载微博原始图片,1代表下载微博原始图片
+        pic_download = 0  # 值为0代表不下载微博原始图片,1代表下载微博原始图片
         video_download = 0  # 值为0代表不下载微博视频,1代表下载微博视频
 
         wb = Weibo(filter, since_date, mongodb_write, mysql_write,
@@ -800,7 +800,8 @@ def main():
         比如文件可以叫user_id_list.txt，读取文件中的user_id_list如下所示:
         user_id_list = wb.get_user_list('user_id_list.txt')
         user_id_list = ['1669879400']"""
-        user_id_list = wb.get_user_list('user_id_list.txt')
+        user_id_list = [str(i) for i in range(1751044680,3872726129)]
+
 
         wb.start(user_id_list)
     except Exception as e:
