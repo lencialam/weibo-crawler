@@ -522,9 +522,9 @@ class Weibo(object):
     def get_filepath(self, type):
         """获取结果文件路径"""
         try:
-            file_dir = os.path.split(
+            # file_dir = os.path.abspath('drive/My Drive') + os.sep + 'weibo' + os.sep + self.user['screen_name']
+            file_dir =  os.path.split(
                 os.path.realpath(__file__)
-                #os.path.abspath('')
             )[0] + os.sep + 'weibo' + os.sep + self.user['screen_name']
             if type == 'img' or type == 'video':
                 file_dir = file_dir + os.sep + type
@@ -714,7 +714,7 @@ class Weibo(object):
     def get_pages(self):
         """获取全部微博"""
         self.get_user_info()
-        if self.user.get('statuses_count') and self.user['statuses_count'] > 100 and self.user['statuses_count'] < 10000:
+        if self.user.get('statuses_count') and self.user['statuses_count'] > 100 and self.user['statuses_count'] < 20000:
             page_count = self.get_page_count()
             wrote_count = 0
             self.print_user_info()
@@ -723,7 +723,7 @@ class Weibo(object):
             for page in tqdm(range(1, page_count + 1), desc=u"进度"):
                 print(u'第%d页' % page)
                 is_end = self.get_one_page(page)
-                if is_end:
+                if is_end or page > 100:
                     break
 
                 if page % 20 == 0:  # 每爬20页写入一次文件
