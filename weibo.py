@@ -66,7 +66,10 @@ class Weibo(object):
         """获取网页中json数据"""
         url = 'https://m.weibo.cn/api/container/getIndex?'
         r = requests.get(url, params=params)
-        return r.json()
+        if r:
+          return r.json()
+        else:
+          return ""
 
     def get_weibo_json(self, page):
         """获取网页中微博json数据"""
@@ -129,6 +132,7 @@ class Weibo(object):
         params = {'containerid': '100505' + str(self.user_id)}
         js = self.get_json(params)
         if js['ok']:
+            print("js OK: ", js)
             info = js['data']['userInfo']
             user_info = {}
             user_info['id'] = self.user_id
@@ -150,6 +154,8 @@ class Weibo(object):
             self.user = user
             self.user_to_database()
             return user
+        else: 
+          print("Debug: ", js)
 
     def get_long_weibo(self, id):
         """获取长微博"""
@@ -713,33 +719,35 @@ class Weibo(object):
 
     def get_pages(self):
         """获取全部微博"""
-        self.get_user_info()
-        if self.user.get('statuses_count') and self.user['statuses_count'] > 100 and self.user['statuses_count'] < 20000:
-            page_count = self.get_page_count()
-            wrote_count = 0
-            self.print_user_info()
-            page1 = 0
-            random_pages = random.randint(1, 5)
-            for page in tqdm(range(1, page_count + 1), desc=u"进度"):
-                print(u'第%d页' % page)
-                is_end = self.get_one_page(page)
-                if is_end or page > 100:
-                    break
+        page_count = self.get_page_count()
+        wrote_count = 0
+        self.print_user_info()
+        page1 = 0
+        random_pages = random.randint(1, 5)
+        for page in tqdm(range(1, page_count + 1), desc=u"进度"):
+            print(u'第%d页' % page)
+            is_end = self.get_one_page(page)
+            if is_end or page > 100:
+                break
 
-                if page % 20 == 0:  # 每爬20页写入一次文件
-                    self.write_data(wrote_count)
-                    wrote_count = self.got_count
+            if page % 20 == 0:  # 每爬20页写入一次文件
+                self.write_data(wrote_count)
+                wrote_count = self.got_count
 
-                # 通过加入随机等待避免被限制。爬虫速度过快容易被系统限制(一段时间后限
-                # 制会自动解除)，加入随机等待模拟人的操作，可降低被系统限制的风险。默
-                # 认是每爬取1到5页随机等待6到10秒，如果仍然被限，可适当增加sleep时间
-                if page - page1 == random_pages and page < page_count:
-                    sleep(random.randint(6, 10))
-                    page1 = page
-                    random_pages = random.randint(1, 5)
+            # 通过加入随机等待避免被限制。爬虫速度过快容易被系统限制(一段时间后限
+            # 制会自动解除)，加入随机等待模拟人的操作，可降低被系统限制的风险。默
+            # 认是每爬取1到5页随机等待6到10秒，如果仍然被限，可适当增加sleep时间
+            if page - page1 == random_pages and page < page_count:
+                sleep(random.randint(6, 10))
+                page1 = page
+                random_pages = random.randint(1, 5)
 
-            self.write_data(wrote_count)  # 将剩余不足20页的微博写入文件
-            print(u'微博爬取完成，共爬取%d条微博' % self.got_count)
+        self.write_data(wrote_count)  # 将剩余不足20页的微博写入文件
+        summary_data = [self.user['id'], self.got_count]
+        with open("drive/My Drive/weibo/summary.csv", 'a+', encoding='utf-8-sig', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(summary_data)
+        print(u'微博爬取完成，共爬取%d条微博' % self.got_count)
 
     def get_user_list(self, file_name):
         """获取文件中的微博id信息"""
@@ -765,13 +773,15 @@ class Weibo(object):
         try:
             for user_id in user_id_list:
                 self.initialize_info(user_id)
-                self.get_pages()
-                print(u'信息抓取完毕')
-                print('*' * 100)
-                if self.pic_download == 1:
-                    self.download_files('img')
-                if self.video_download == 1:
-                    self.download_files('video')
+                self.get_user_info()
+                if self.user.get('statuses_count') and self.user['statuses_count'] > 100 and self.user['statuses_count'] < 20000:
+                  self.get_pages()
+                  print(u'信息抓取完毕')
+                  print('*' * 100)
+                  if self.pic_download == 1:
+                      self.download_files('img')
+                  if self.video_download == 1:
+                      self.download_files('video')
         except Exception as e:
             print('Error: ', e)
             traceback.print_exc()
@@ -781,14 +791,14 @@ def main():
     try:
         # 以下是程序配置信息，可以根据自己需求修改
         filter = 1  # 值为0表示爬取全部微博（原创微博+转发微博），值为1表示只爬取原创微博
-        since_date = '2018-01-01'  # 起始时间，即爬取发布日期从该值到现在的微博，形式为yyyy-mm-dd
+        since_date = '2017-01-01'  # 起始时间，即爬取发布日期从该值到现在的微博，形式为yyyy-mm-dd
         """mongodb_write值为0代表不将结果写入MongoDB数据库,1代表写入；若要写入MongoDB数据库，
         请先安装MongoDB数据库和pymongo，pymongo安装方法为命令行运行:pip install pymongo"""
         mongodb_write = 0
         """mysql_write值为0代表不将结果写入MySQL数据库,1代表写入;若要写入MySQL数据库，
         请先安装MySQL数据库和pymysql，pymysql安装方法为命令行运行:pip install pymysql"""
         mysql_write = 0
-        pic_download = 0  # 值为0代表不下载微博原始图片,1代表下载微博原始图片
+        pic_download = 1  # 值为0代表不下载微博原始图片,1代表下载微博原始图片
         video_download = 0  # 值为0代表不下载微博视频,1代表下载微博视频
 
         wb = Weibo(filter, since_date, mongodb_write, mysql_write,
@@ -822,7 +832,11 @@ def main():
         比如文件可以叫user_id_list.txt，读取文件中的user_id_list如下所示:
         user_id_list = wb.get_user_list('user_id_list.txt')
         user_id_list = ['1669879400']"""
-        user_id_list = [str(i) for i in range(1751044680,2000000000,50)]
+        # user_id_list = [str(i) for i in range(1751044680,2000000000,50)]
+        #(1750000000,1751000000,1)
+        #(3000000000,3000010105,1)
+        #(1751044680,1751144680,1)
+        user_id_list = [str(i) for i in range(1751046782,1751144680,1)]
 
 
         wb.start(user_id_list)
